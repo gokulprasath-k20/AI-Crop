@@ -312,3 +312,6 @@ if __name__ == '__main__':
         debug=False,  # Disable debug in production
         threaded=True  # Enable threading for better performance
     )
+
+# For Gunicorn (production deployment)
+application = app

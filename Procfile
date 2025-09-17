@@ -1,1 +1,1 @@
-web: gunicorn final_working_api:app --host 0.0.0.0 --port $PORT
+web: gunicorn production_api:app --host 0.0.0.0 --port $PORT
