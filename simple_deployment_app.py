@@ -1,11 +1,14 @@
 # SIH 2025 - Simple Deployment App (No External Dependencies)
 # Standalone Flask app for reliable deployment
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import random
 import os
+from usage_tracker import usage_tracker
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Crop recommendation logic (simplified for deployment)
 CROP_RULES = {
@@ -46,6 +49,9 @@ def calculate_suitability(crop, N, P, K, temp, humidity, ph, rainfall):
 
 @app.route('/')
 def home():
+    # Log usage
+    usage_tracker.log_request('/', request.remote_addr)
+    
     return jsonify({
         "message": "🌾 SIH 2025 Crop Recommendation API",
         "status": "operational",
@@ -55,12 +61,17 @@ def home():
         "endpoints": {
             "health": "/api/health",
             "recommend": "/api/recommend (POST)",
-            "crops": "/api/crops"
+            "crops": "/api/crops",
+            "usage": "/api/usage",
+            "dashboard": "/dashboard"
         }
     })
 
 @app.route('/api/health')
 def health_check():
+    # Log usage
+    usage_tracker.log_request('/api/health', request.remote_addr)
+    
     return jsonify({
         "status": "healthy",
         "service": "SIH 2025 Crop Recommendation API",
@@ -95,6 +106,9 @@ def recommend_crop():
         # Get best crop
         best_crop = max(crop_scores, key=crop_scores.get)
         confidence = crop_scores[best_crop]
+        
+        # Log usage with crop recommendation
+        usage_tracker.log_request('/api/recommend', request.remote_addr, best_crop)
         
         # Calculate yield (simplified)
         base_yield = CROP_YIELDS.get(best_crop, 2000)
@@ -147,6 +161,9 @@ def recommend_crop():
 
 @app.route('/api/crops')
 def get_crops():
+    # Log usage
+    usage_tracker.log_request('/api/crops', request.remote_addr)
+    
     crops = []
     for crop in CROP_RULES.keys():
         crops.append({
@@ -160,6 +177,26 @@ def get_crops():
         "total_crops": len(crops),
         "crops": crops
     })
+
+@app.route('/api/usage')
+def get_usage_stats():
+    """Get public usage statistics."""
+    try:
+        stats = usage_tracker.get_usage_stats()
+        return jsonify({
+            "status": "success",
+            "usage_statistics": stats
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Error retrieving usage stats: {str(e)}"
+        }), 500
+
+@app.route('/dashboard')
+def dashboard():
+    """Serve the usage dashboard."""
+    return render_template('dashboard.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -1,0 +1,21 @@
+{
+  "total_requests": 29,
+  "daily_stats": {
+    "2025-09-19": 29
+  },
+  "endpoint_stats": {
+    "/": 3,
+    "/api/health": 2,
+    "/api/crops": 1,
+    "/api/recommend": 23
+  },
+  "crop_recommendations": {
+    "rice": 4,
+    "cotton": 5,
+    "mango": 3,
+    "maize": 4,
+    "wheat": 5,
+    "banana": 2
+  },
+  "user_locations": {}
+}

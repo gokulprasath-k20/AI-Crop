@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIH 2025 - Crop Recommendation Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        .btn {
+            background: #2e8b57;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            margin: 20px 0;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #228b22;
+        }
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .result {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .crop-card {
+            background: rgba(46, 139, 87, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .loading {
+            text-align: center;
+            font-size: 18px;
+        }
+        .error {
+            background: rgba(220, 20, 60, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            color: #ffcccb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 SIH 2025 Crop Recommendation System</h1>
+            <p>AI-Powered Crop Selection for Jharkhand Farmers</p>
+            <p><strong>Enter your soil and climate data below:</strong></p>
+        </div>
+
+        <form id="cropForm">
+            <div class="form-group">
+                <label for="nitrogen">🧪 Nitrogen (N) - kg/hectare:</label>
+                <input type="number" id="nitrogen" value="90" step="0.1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phosphorus">🧪 Phosphorus (P) - kg/hectare:</label>
+                <input type="number" id="phosphorus" value="42" step="0.1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="potassium">🧪 Potassium (K) - kg/hectare:</label>
+                <input type="number" id="potassium" value="43" step="0.1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="temperature">🌡️ Temperature - °C:</label>
+                <input type="number" id="temperature" value="21" step="0.1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="humidity">💧 Humidity - %:</label>
+                <input type="number" id="humidity" value="82" step="0.1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="ph">⚗️ Soil pH Level:</label>
+                <input type="number" id="ph" value="6.5" step="0.1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="rainfall">🌧️ Annual Rainfall - mm:</label>
+                <input type="number" id="rainfall" value="203" step="0.1" required>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                🌾 Get AI Crop Recommendation
+            </button>
+        </form>
+
+        <div id="loading" class="loading" style="display: none;">
+            <p>🤖 AI is analyzing your data...</p>
+            <p>Please wait while we find the best crop for you!</p>
+        </div>
+
+        <div id="results" style="display: none;">
+            <h3>🎯 AI Recommendation Results:</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Update this with your actual deployed API URL
+        const API_BASE_URL = 'https://your-app-name.onrender.com';
+
+        document.getElementById('cropForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const resultContent = document.getElementById('resultContent');
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🤖 Analyzing...';
+            loading.style.display = 'block';
+            results.style.display = 'none';
+
+            // Collect form data
+            const formData = {
+                N: parseFloat(document.getElementById('nitrogen').value),
+                P: parseFloat(document.getElementById('phosphorus').value),
+                K: parseFloat(document.getElementById('potassium').value),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                humidity: parseFloat(document.getElementById('humidity').value),
+                ph: parseFloat(document.getElementById('ph').value),
+                rainfall: parseFloat(document.getElementById('rainfall').value)
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/recommend`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const primary = result.recommendation.primary_crop;
+                    const alternatives = result.recommendation.alternative_crops || [];
+
+                    let html = `
+                        <div class="crop-card">
+                            <h4>🏆 Best Crop Recommendation:</h4>
+                            <p><strong>Crop:</strong> ${primary.name_hindi} (${primary.name_english})</p>
+                            <p><strong>Expected Yield:</strong> ${primary.predicted_yield_kg_per_ha.toLocaleString()} kg/hectare</p>
+                            <p><strong>Sustainability Score:</strong> ${primary.sustainability_score}/10</p>
+                            <p><strong>Confidence Level:</strong> ${(primary.confidence * 100).toFixed(1)}%</p>
+                        </div>
+                    `;
+
+                    if (alternatives.length > 0) {
+                        html += '<h4>🔄 Alternative Crop Options:</h4>';
+                        alternatives.forEach((alt, index) => {
+                            html += `
+                                <div class="crop-card">
+                                    <p><strong>${index + 1}. ${alt.name_hindi} (${alt.name_english})</strong></p>
+                                    <p>Expected Yield: ${alt.predicted_yield_kg_per_ha.toLocaleString()} kg/ha</p>
+                                    <p>Sustainability: ${alt.sustainability_score}/10</p>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    html += `
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">
+                            <p><strong>💡 How to use this recommendation:</strong></p>
+                            <p>• Plant the recommended crop for maximum yield</p>
+                            <p>• Consider alternatives based on market prices</p>
+                            <p>• Higher sustainability scores are better for environment</p>
+                            <p>• Confidence level shows how certain the AI is</p>
+                        </div>
+                    `;
+
+                    resultContent.innerHTML = html;
+                    results.style.display = 'block';
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Error:</h4>
+                            <p>${result.message}</p>
+                        </div>
+                    `;
+                    results.style.display = 'block';
+                }
+            } catch (error) {
+                resultContent.innerHTML = `
+                    <div class="error">
+                        <h4>🌐 Network Error:</h4>
+                        <p>Unable to connect to the API. Please check:</p>
+                        <p>• Your internet connection</p>
+                        <p>• API URL is correct: ${API_BASE_URL}</p>
+                        <p>• API server is running</p>
+                    </div>
+                `;
+                results.style.display = 'block';
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🌾 Get AI Crop Recommendation';
+                loading.style.display = 'none';
+            }
+        });
+
+        // Test API connection on page load
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                if (response.ok) {
+                    console.log('✅ API connection successful');
+                } else {
+                    console.warn('⚠️ API connection issues');
+                }
+            } catch (error) {
+                console.error('❌ Cannot connect to API:', error);
+                alert('⚠️ Warning: Cannot connect to API. Please update API_BASE_URL in the code with your deployed URL.');
+            }
+        });
+    </script>
+</body>
+</html>

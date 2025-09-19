@@ -1,0 +1,31 @@
+{
+  "app_name": "sih2025-crop-api",
+  "platforms": {
+    "render": {
+      "url": "https://sih2025-crop-api.onrender.com",
+      "dashboard": "https://sih2025-crop-api.onrender.com/dashboard",
+      "api_docs": "https://sih2025-crop-api.onrender.com/",
+      "usage_stats": "https://sih2025-crop-api.onrender.com/api/usage"
+    },
+    "heroku": {
+      "url": "https://sih2025-crop-api.herokuapp.com",
+      "dashboard": "https://sih2025-crop-api.herokuapp.com/dashboard",
+      "api_docs": "https://sih2025-crop-api.herokuapp.com/",
+      "usage_stats": "https://sih2025-crop-api.herokuapp.com/api/usage"
+    },
+    "railway": {
+      "url": "https://sih2025-crop-api.railway.app",
+      "dashboard": "https://sih2025-crop-api.railway.app/dashboard",
+      "api_docs": "https://sih2025-crop-api.railway.app/",
+      "usage_stats": "https://sih2025-crop-api.railway.app/api/usage"
+    }
+  },
+  "endpoints": {
+    "POST /api/recommend": "Get crop recommendations",
+    "GET /api/health": "Check API health",
+    "GET /api/crops": "List supported crops",
+    "GET /api/usage": "Get usage statistics",
+    "GET /dashboard": "View usage dashboard",
+    "GET /": "API documentation"
+  }
+}

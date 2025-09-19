@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIH 2025 - Crop API Usage Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 5px solid #4CAF50;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .charts-section {
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .chart-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 SIH 2025 Crop API</h1>
+            <p>Public Usage Dashboard</p>
+        </div>
+        
+        <div id="loading" class="loading">
+            Loading usage statistics...
+        </div>
+        
+        <div id="error" class="error" style="display: none;">
+            Error loading data. Please try again.
+        </div>
+        
+        <div id="dashboard" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalRequests">0</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="todayRequests">0</div>
+                    <div class="stat-label">Today's Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="topCrop">-</div>
+                    <div class="stat-label">Most Recommended Crop</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="apiHealth">✅</div>
+                    <div class="stat-label">API Status</div>
+                </div>
+            </div>
+            
+            <div class="charts-section">
+                <div class="chart-container">
+                    <div class="chart-title">Daily Usage (Last 7 Days)</div>
+                    <canvas id="dailyChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Top Recommended Crops</div>
+                    <canvas id="cropsChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Endpoint Usage</div>
+                    <canvas id="endpointsChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh</button>
+    
+    <script>
+        let dailyChart, cropsChart, endpointsChart;
+        
+        async function loadDashboard() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'none';
+                
+                const response = await fetch('/api/usage');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateStats(data.usage_statistics);
+                    updateCharts(data.usage_statistics);
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                } else {
+                    throw new Error('Failed to load data');
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+        
+        function updateStats(stats) {
+            document.getElementById('totalRequests').textContent = stats.total_requests || 0;
+            document.getElementById('todayRequests').textContent = stats.today_requests || 0;
+            
+            // Get top crop
+            const topCrops = stats.top_recommended_crops || {};
+            const topCrop = Object.keys(topCrops)[0] || 'None';
+            document.getElementById('topCrop').textContent = topCrop.charAt(0).toUpperCase() + topCrop.slice(1);
+        }
+        
+        function updateCharts(stats) {
+            // Daily usage chart
+            const dailyData = stats.recent_daily_stats || {};
+            const dailyLabels = Object.keys(dailyData);
+            const dailyValues = Object.values(dailyData);
+            
+            if (dailyChart) dailyChart.destroy();
+            const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+            dailyChart = new Chart(dailyCtx, {
+                type: 'line',
+                data: {
+                    labels: dailyLabels,
+                    datasets: [{
+                        label: 'Requests',
+                        data: dailyValues,
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Crops chart
+            const cropsData = stats.top_recommended_crops || {};
+            const cropLabels = Object.keys(cropsData).map(crop => 
+                crop.charAt(0).toUpperCase() + crop.slice(1)
+            );
+            const cropValues = Object.values(cropsData);
+            
+            if (cropsChart) cropsChart.destroy();
+            const cropsCtx = document.getElementById('cropsChart').getContext('2d');
+            cropsChart = new Chart(cropsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: cropLabels,
+                    datasets: [{
+                        data: cropValues,
+                        backgroundColor: [
+                            '#4CAF50', '#2196F3', '#FF9800', 
+                            '#9C27B0', '#F44336', '#00BCD4'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Endpoints chart
+            const endpointsData = stats.endpoint_usage || {};
+            const endpointLabels = Object.keys(endpointsData);
+            const endpointValues = Object.values(endpointsData);
+            
+            if (endpointsChart) endpointsChart.destroy();
+            const endpointsCtx = document.getElementById('endpointsChart').getContext('2d');
+            endpointsChart = new Chart(endpointsCtx, {
+                type: 'bar',
+                data: {
+                    labels: endpointLabels,
+                    datasets: [{
+                        label: 'Requests',
+                        data: endpointValues,
+                        backgroundColor: '#4CAF50',
+                        borderColor: '#45a049',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Load dashboard on page load
+        window.addEventListener('load', loadDashboard);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

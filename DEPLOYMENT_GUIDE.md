@@ -66,6 +66,28 @@ SIH 2025 Crop Recommendation System
     └── DEPLOYMENT_GUIDE.md (this file)
 ```
 
+## 📊 **NEW: PUBLIC USAGE TRACKING**
+
+Your API now includes **comprehensive usage analytics**:
+
+- ✅ **Real-time usage statistics**
+- ✅ **Daily request tracking**
+- ✅ **Crop recommendation analytics**
+- ✅ **Endpoint usage monitoring**
+- ✅ **Beautiful web dashboard**
+- ✅ **Public usage API endpoint**
+
+### **Access Your Usage Dashboard**
+```
+http://your-deployed-url/dashboard
+```
+
+### **Usage API Endpoints**
+```
+GET /api/usage - Get comprehensive usage statistics
+GET /dashboard - View interactive usage dashboard
+```
+
 ## 🚀 **DEPLOYMENT OPTIONS**
 
 ### **Option 1: Mobile App Integration (Recommended)**
