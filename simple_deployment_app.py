@@ -39,24 +39,48 @@ def load_dataset():
 # Load the dataset
 DATASET = load_dataset()
 
-# Default crops (fallback if no CSV)
+# All 24 crops support
 DEFAULT_CROP_RULES = {
     'rice': {'N': (80, 120), 'P': (40, 60), 'K': (35, 45), 'temp': (20, 27), 'humidity': (80, 90), 'ph': (5.5, 7.0), 'rainfall': (1500, 2000)},
     'wheat': {'N': (50, 80), 'P': (30, 50), 'K': (30, 50), 'temp': (15, 25), 'humidity': (50, 70), 'ph': (6.0, 7.5), 'rainfall': (450, 650)},
     'maize': {'N': (70, 110), 'P': (35, 55), 'K': (20, 40), 'temp': (18, 27), 'humidity': (60, 80), 'ph': (5.8, 7.0), 'rainfall': (600, 1000)},
     'cotton': {'N': (100, 140), 'P': (40, 70), 'K': (40, 60), 'temp': (21, 30), 'humidity': (50, 80), 'ph': (5.8, 8.0), 'rainfall': (600, 1200)},
     'banana': {'N': (100, 140), 'P': (50, 80), 'K': (60, 100), 'temp': (26, 32), 'humidity': (75, 85), 'ph': (6.0, 7.5), 'rainfall': (1200, 2000)},
-    'mango': {'N': (80, 120), 'P': (40, 60), 'K': (40, 60), 'temp': (24, 32), 'humidity': (60, 80), 'ph': (5.5, 7.5), 'rainfall': (800, 1200)}
+    'mango': {'N': (80, 120), 'P': (40, 60), 'K': (40, 60), 'temp': (24, 32), 'humidity': (60, 80), 'ph': (5.5, 7.5), 'rainfall': (800, 1200)},
+    'sugarcane': {'N': (120, 160), 'P': (50, 80), 'K': (80, 120), 'temp': (26, 32), 'humidity': (75, 85), 'ph': (6.0, 8.0), 'rainfall': (1500, 2500)},
+    'jute': {'N': (80, 120), 'P': (30, 50), 'K': (40, 60), 'temp': (24, 30), 'humidity': (80, 90), 'ph': (6.0, 7.5), 'rainfall': (1200, 1800)},
+    'coffee': {'N': (100, 140), 'P': (40, 60), 'K': (60, 80), 'temp': (18, 24), 'humidity': (70, 85), 'ph': (6.0, 7.0), 'rainfall': (1200, 2000)},
+    'coconut': {'N': (80, 120), 'P': (40, 60), 'K': (100, 140), 'temp': (26, 32), 'humidity': (75, 85), 'ph': (5.5, 7.5), 'rainfall': (1200, 2000)},
+    'papaya': {'N': (100, 140), 'P': (50, 80), 'K': (60, 100), 'temp': (26, 32), 'humidity': (70, 85), 'ph': (6.0, 7.5), 'rainfall': (1000, 1500)},
+    'orange': {'N': (80, 120), 'P': (40, 60), 'K': (60, 80), 'temp': (20, 28), 'humidity': (60, 80), 'ph': (6.0, 7.5), 'rainfall': (800, 1200)},
+    'apple': {'N': (60, 100), 'P': (30, 50), 'K': (40, 60), 'temp': (15, 22), 'humidity': (60, 75), 'ph': (6.0, 7.0), 'rainfall': (700, 1000)},
+    'muskmelon': {'N': (80, 120), 'P': (40, 60), 'K': (40, 60), 'temp': (25, 32), 'humidity': (60, 75), 'ph': (6.0, 7.5), 'rainfall': (400, 600)},
+    'watermelon': {'N': (100, 140), 'P': (50, 70), 'K': (50, 70), 'temp': (25, 32), 'humidity': (60, 80), 'ph': (6.0, 7.5), 'rainfall': (400, 700)},
+    'grapes': {'N': (60, 100), 'P': (30, 50), 'K': (40, 60), 'temp': (20, 28), 'humidity': (60, 75), 'ph': (6.0, 7.5), 'rainfall': (600, 900)},
+    'pomegranate': {'N': (60, 100), 'P': (30, 50), 'K': (40, 60), 'temp': (20, 30), 'humidity': (50, 70), 'ph': (6.5, 7.5), 'rainfall': (500, 800)},
+    'lentil': {'N': (20, 40), 'P': (20, 40), 'K': (15, 35), 'temp': (20, 28), 'humidity': (60, 80), 'ph': (6.0, 7.5), 'rainfall': (300, 500)},
+    'blackgram': {'N': (20, 40), 'P': (15, 35), 'K': (15, 35), 'temp': (25, 35), 'humidity': (60, 80), 'ph': (6.0, 7.0), 'rainfall': (300, 500)},
+    'mungbean': {'N': (20, 40), 'P': (15, 35), 'K': (15, 35), 'temp': (25, 35), 'humidity': (60, 80), 'ph': (6.2, 7.2), 'rainfall': (250, 400)},
+    'mothbeans': {'N': (15, 35), 'P': (10, 30), 'K': (10, 30), 'temp': (27, 35), 'humidity': (50, 70), 'ph': (6.5, 8.0), 'rainfall': (200, 350)},
+    'pigeonpeas': {'N': (20, 40), 'P': (15, 35), 'K': (15, 35), 'temp': (20, 30), 'humidity': (60, 80), 'ph': (6.0, 7.5), 'rainfall': (350, 500)},
+    'kidneybeans': {'N': (40, 60), 'P': (25, 45), 'K': (20, 40), 'temp': (15, 25), 'humidity': (60, 80), 'ph': (6.0, 7.0), 'rainfall': (400, 600)},
+    'chickpea': {'N': (20, 40), 'P': (20, 40), 'K': (15, 35), 'temp': (20, 30), 'humidity': (60, 80), 'ph': (6.2, 7.8), 'rainfall': (300, 500)}
 }
 
 DEFAULT_CROP_YIELDS = {
-    'rice': 4500, 'wheat': 3200, 'maize': 5500, 'cotton': 1800, 'banana': 35000, 'mango': 12000
+    'rice': 4500, 'wheat': 3200, 'maize': 5500, 'cotton': 1800, 'banana': 35000, 'mango': 12000,
+    'sugarcane': 70000, 'jute': 2500, 'coffee': 1200, 'coconut': 8000, 'papaya': 45000, 'orange': 25000,
+    'apple': 20000, 'muskmelon': 15000, 'watermelon': 25000, 'grapes': 18000, 'pomegranate': 15000,
+    'lentil': 1200, 'blackgram': 800, 'mungbean': 900, 'mothbeans': 700, 'pigeonpeas': 1000,
+    'kidneybeans': 1500, 'chickpea': 1300
 }
 
 DEFAULT_HINDI_NAMES = {
     'rice': 'चावल', 'wheat': 'गेहूं', 'maize': 'मक्का', 'cotton': 'कपास', 'banana': 'केला', 'mango': 'आम',
-    'pigeonpeas': 'अरहर', 'sugarcane': 'गन्ना', 'grapes': 'अंगूर', 'apple': 'सेब', 'orange': 'संतरा',
-    'coconut': 'नारियल', 'papaya': 'पपीता', 'pomegranate': 'अनार', 'watermelon': 'तरबूज', 'muskmelon': 'खरबूजा'
+    'sugarcane': 'गन्ना', 'jute': 'जूट', 'coffee': 'कॉफी', 'coconut': 'नारियल', 'papaya': 'पपीता', 'orange': 'संतरा',
+    'apple': 'सेब', 'muskmelon': 'खरबूजा', 'watermelon': 'तरबूज', 'grapes': 'अंगूर', 'pomegranate': 'अनार',
+    'lentil': 'मसूर', 'blackgram': 'उड़द', 'mungbean': 'मूंग', 'mothbeans': 'मोठ', 'pigeonpeas': 'अरहर',
+    'kidneybeans': 'राजमा', 'chickpea': 'चना'
 }
 
 def get_crop_info_from_dataset():

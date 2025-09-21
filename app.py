@@ -7,8 +7,8 @@ import os
 # Add current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Use the full crop backend (24 crops, self-contained)
-from full_crop_backend import app
+# Use the simple deployment app (updated with 24 crops)
+from simple_deployment_app import app
 
 # This is what Gunicorn will look for
 application = app
