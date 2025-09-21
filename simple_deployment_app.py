@@ -5,13 +5,42 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import random
 import os
+import pandas as pd
+import numpy as np
 from usage_tracker import usage_tracker
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Crop recommendation logic (simplified for deployment)
-CROP_RULES = {
+# Dataset URL - Change this to your new dataset link
+DATASET_URL = "https://raw.githubusercontent.com/your-username/your-repo/main/crop_dataset.csv"
+
+# Load dataset from URL or local file
+def load_dataset():
+    """Load crop dataset from URL or local file."""
+    try:
+        # First try to load from URL
+        print(f"🌐 Loading dataset from URL: {DATASET_URL}")
+        df = pd.read_csv(DATASET_URL)
+        print(f"✅ Successfully loaded {len(df)} records with crops: {df['label'].unique()}")
+        return df
+    except Exception as url_error:
+        print(f"⚠️  Failed to load from URL: {url_error}")
+        try:
+            # Fallback to local file
+            print("📁 Trying local file: crop_dataset.csv")
+            df = pd.read_csv('crop_dataset.csv')
+            print(f"✅ Successfully loaded local dataset with {len(df)} records")
+            return df
+        except FileNotFoundError:
+            print("⚠️  No local CSV file found. Using default crops.")
+            return None
+
+# Load the dataset
+DATASET = load_dataset()
+
+# Default crops (fallback if no CSV)
+DEFAULT_CROP_RULES = {
     'rice': {'N': (80, 120), 'P': (40, 60), 'K': (35, 45), 'temp': (20, 27), 'humidity': (80, 90), 'ph': (5.5, 7.0), 'rainfall': (1500, 2000)},
     'wheat': {'N': (50, 80), 'P': (30, 50), 'K': (30, 50), 'temp': (15, 25), 'humidity': (50, 70), 'ph': (6.0, 7.5), 'rainfall': (450, 650)},
     'maize': {'N': (70, 110), 'P': (35, 55), 'K': (20, 40), 'temp': (18, 27), 'humidity': (60, 80), 'ph': (5.8, 7.0), 'rainfall': (600, 1000)},
@@ -20,32 +49,90 @@ CROP_RULES = {
     'mango': {'N': (80, 120), 'P': (40, 60), 'K': (40, 60), 'temp': (24, 32), 'humidity': (60, 80), 'ph': (5.5, 7.5), 'rainfall': (800, 1200)}
 }
 
-CROP_YIELDS = {
+DEFAULT_CROP_YIELDS = {
     'rice': 4500, 'wheat': 3200, 'maize': 5500, 'cotton': 1800, 'banana': 35000, 'mango': 12000
 }
 
-HINDI_NAMES = {
-    'rice': 'चावल', 'wheat': 'गेहूं', 'maize': 'मक्का', 'cotton': 'कपास', 'banana': 'केला', 'mango': 'आम'
+DEFAULT_HINDI_NAMES = {
+    'rice': 'चावल', 'wheat': 'गेहूं', 'maize': 'मक्का', 'cotton': 'कपास', 'banana': 'केला', 'mango': 'आम',
+    'pigeonpeas': 'अरहर', 'sugarcane': 'गन्ना', 'grapes': 'अंगूर', 'apple': 'सेब', 'orange': 'संतरा',
+    'coconut': 'नारियल', 'papaya': 'पपीता', 'pomegranate': 'अनार', 'watermelon': 'तरबूज', 'muskmelon': 'खरबूजा'
 }
 
+def get_crop_info_from_dataset():
+    """Extract crop information from loaded dataset."""
+    if DATASET is None:
+        return DEFAULT_CROP_RULES, DEFAULT_CROP_YIELDS, DEFAULT_HINDI_NAMES
+    
+    crop_rules = {}
+    crop_yields = {}
+    hindi_names = {}
+    
+    # Group by crop label to calculate ranges
+    for crop in DATASET['label'].unique():
+        crop_data = DATASET[DATASET['label'] == crop]
+        
+        # Calculate parameter ranges (mean ± std)
+        crop_rules[crop] = {
+            'N': (max(0, crop_data['N'].mean() - crop_data['N'].std()), 
+                  crop_data['N'].mean() + crop_data['N'].std()),
+            'P': (max(0, crop_data['P'].mean() - crop_data['P'].std()), 
+                  crop_data['P'].mean() + crop_data['P'].std()),
+            'K': (max(0, crop_data['K'].mean() - crop_data['K'].std()), 
+                  crop_data['K'].mean() + crop_data['K'].std()),
+            'temp': (crop_data['temperature'].mean() - crop_data['temperature'].std(), 
+                     crop_data['temperature'].mean() + crop_data['temperature'].std()),
+            'humidity': (max(0, crop_data['humidity'].mean() - crop_data['humidity'].std()), 
+                         min(100, crop_data['humidity'].mean() + crop_data['humidity'].std())),
+            'ph': (max(0, crop_data['ph'].mean() - crop_data['ph'].std()), 
+                   min(14, crop_data['ph'].mean() + crop_data['ph'].std())),
+            'rainfall': (max(0, crop_data['rainfall'].mean() - crop_data['rainfall'].std()), 
+                         crop_data['rainfall'].mean() + crop_data['rainfall'].std())
+        }
+        
+        # Estimate yield (you can add actual yield column to your CSV)
+        crop_yields[crop] = int(crop_data['N'].mean() * 50)  # Simple estimation
+        
+        # Add Hindi names (you can add hindi_name column to your CSV)
+        hindi_names[crop] = DEFAULT_HINDI_NAMES.get(crop, crop)  # Fallback to English
+    
+    return crop_rules, crop_yields, hindi_names
+
+# Get crop information
+CROP_RULES, CROP_YIELDS, HINDI_NAMES = get_crop_info_from_dataset()
+
 def calculate_suitability(crop, N, P, K, temp, humidity, ph, rainfall):
-    """Calculate crop suitability score."""
+    """Calculate crop suitability score using distance-based matching."""
     if crop not in CROP_RULES:
         return 0.0
     
     rules = CROP_RULES[crop]
-    score = 0.0
-    params = {'N': N, 'P': P, 'K': K, 'temp': temp, 'humidity': humidity, 'ph': ph, 'rainfall': rainfall}
+    input_params = {'N': N, 'P': P, 'K': K, 'temp': temp, 'humidity': humidity, 'ph': ph, 'rainfall': rainfall}
+    
+    # Calculate normalized distance for each parameter
+    total_distance = 0.0
+    param_count = 0
     
     for param, (min_val, max_val) in rules.items():
-        param_value = params[param]
-        if min_val <= param_value <= max_val:
-            score += 1.0
-        else:
-            penalty = min(1.0, abs(param_value - (min_val + max_val) / 2) / max_val)
-            score += max(0.0, 1.0 - penalty)
+        if param in input_params:
+            param_value = input_params[param]
+            optimal_value = (min_val + max_val) / 2
+            param_range = max_val - min_val
+            
+            # Normalize distance (0 = perfect match, 1 = maximum distance)
+            if param_range > 0:
+                distance = abs(param_value - optimal_value) / param_range
+                total_distance += min(1.0, distance)
+                param_count += 1
     
-    return score / len(rules)
+    if param_count == 0:
+        return 0.0
+    
+    # Convert distance to similarity score (higher is better)
+    avg_distance = total_distance / param_count
+    similarity_score = max(0.0, 1.0 - avg_distance)
+    
+    return similarity_score
 
 @app.route('/')
 def home():
@@ -191,6 +278,75 @@ def get_usage_stats():
         return jsonify({
             "status": "error",
             "message": f"Error retrieving usage stats: {str(e)}"
+        }), 500
+
+@app.route('/api/update-dataset', methods=['POST'])
+def update_dataset():
+    """Update dataset URL and reload data."""
+    global DATASET_URL, DATASET, CROP_RULES, CROP_YIELDS, HINDI_NAMES
+    
+    try:
+        data = request.json
+        new_url = data.get('dataset_url')
+        
+        if not new_url:
+            return jsonify({
+                "status": "error",
+                "message": "dataset_url is required"
+            }), 400
+        
+        # Update the URL
+        DATASET_URL = new_url
+        
+        # Reload dataset
+        DATASET = load_dataset()
+        
+        # Update crop information
+        CROP_RULES, CROP_YIELDS, HINDI_NAMES = get_crop_info_from_dataset()
+        
+        if DATASET is not None:
+            return jsonify({
+                "status": "success",
+                "message": f"Dataset updated successfully from {new_url}",
+                "crops_loaded": list(DATASET['label'].unique()),
+                "total_records": len(DATASET)
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to load dataset from URL"
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Error updating dataset: {str(e)}"
+        }), 500
+
+@app.route('/api/dataset-info')
+def get_dataset_info():
+    """Get current dataset information."""
+    try:
+        if DATASET is not None:
+            return jsonify({
+                "status": "success",
+                "dataset_url": DATASET_URL,
+                "crops": list(DATASET['label'].unique()),
+                "total_records": len(DATASET),
+                "columns": list(DATASET.columns)
+            })
+        else:
+            return jsonify({
+                "status": "success",
+                "dataset_url": "Using default crops",
+                "crops": list(DEFAULT_CROP_RULES.keys()),
+                "total_records": len(DEFAULT_CROP_RULES),
+                "columns": ["Using hardcoded rules"]
+            })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Error getting dataset info: {str(e)}"
         }), 500
 
 @app.route('/dashboard')

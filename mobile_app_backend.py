@@ -84,7 +84,7 @@ def recommend_crop():
                         "yield": alt['predicted_yield_kg_per_ha'],
                         "sustainability": alt['sustainability_score'],
                         "suitability": alt['suitability_score']
-                    } for alt in result['alternative_crops'][:3]
+                    } for alt in result['alternative_crops'][:6]
                 ]
             },
             "validation": {

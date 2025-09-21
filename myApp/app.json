@@ -1,23 +1,27 @@
 {
   "expo": {
-    "name": "myApp",
-    "slug": "myApp",
+    "name": "SIH Crop Advisor",
+    "slug": "sih-crop-advisor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "sih-crop-advisor",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "AI-powered crop recommendation app for Jharkhand farmers - SIH 2025",
+    "keywords": ["agriculture", "farming", "crop", "recommendation", "AI", "Jharkhand", "SIH"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sih2025.cropadvisor"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F4F1E8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "package": "com.sih2025.cropadvisor",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -33,9 +37,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#F4F1E8",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#2E7D32"
           }
         }
       ]
