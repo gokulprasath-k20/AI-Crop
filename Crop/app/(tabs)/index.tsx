@@ -41,29 +41,99 @@ export default function HomeScreen() {
   const [showResults, setShowResults] = useState(false);
 
   const inputFields = [
-    { key: 'N', label: 'Nitrogen (N)', unit: 'kg/ha', icon: 'leaf-outline', placeholder: 'e.g., 90' },
-    { key: 'P', label: 'Phosphorus (P)', unit: 'kg/ha', icon: 'flask-outline', placeholder: 'e.g., 42' },
-    { key: 'K', label: 'Potassium (K)', unit: 'kg/ha', icon: 'diamond-outline', placeholder: 'e.g., 43' },
-    { key: 'temperature', label: 'Temperature', unit: '°C', icon: 'thermometer-outline', placeholder: 'e.g., 21' },
-    { key: 'humidity', label: 'Humidity', unit: '%', icon: 'water-outline', placeholder: 'e.g., 82' },
-    { key: 'ph', label: 'pH Level', unit: '', icon: 'beaker-outline', placeholder: 'e.g., 6.5' },
-    { key: 'rainfall', label: 'Rainfall', unit: 'mm', icon: 'rainy-outline', placeholder: 'e.g., 203' }
+    { 
+      key: 'N', 
+      label: 'Nitrogen (N)', 
+      unit: 'kg/ha', 
+      icon: 'leaf-outline', 
+      placeholder: 'e.g., 90.5',
+      keyboardType: 'decimal-pad',
+      decimal: true
+    },
+    { 
+      key: 'P', 
+      label: 'Phosphorus (P)', 
+      unit: 'kg/ha', 
+      icon: 'flask-outline', 
+      placeholder: 'e.g., 42.5',
+      keyboardType: 'decimal-pad',
+      decimal: true
+    },
+    { 
+      key: 'K', 
+      label: 'Potassium (K)', 
+      unit: 'kg/ha', 
+      icon: 'diamond-outline', 
+      placeholder: 'e.g., 43.5',
+      keyboardType: 'decimal-pad',
+      decimal: true
+    },
+    { 
+      key: 'temperature', 
+      label: 'Temperature', 
+      unit: '°C', 
+      icon: 'thermometer-outline', 
+      placeholder: 'e.g., 21.5',
+      keyboardType: 'decimal-pad',
+      decimal: true
+    },
+    { 
+      key: 'humidity', 
+      label: 'Humidity', 
+      unit: '%', 
+      icon: 'water-outline', 
+      placeholder: 'e.g., 82.5',
+      keyboardType: 'decimal-pad',
+      decimal: true
+    },
+    { 
+      key: 'ph', 
+      label: 'pH Level', 
+      unit: '', 
+      icon: 'beaker-outline', 
+      placeholder: 'e.g., 6.5',
+      keyboardType: 'decimal-pad',
+      decimal: true
+    },
+    { 
+      key: 'rainfall', 
+      label: 'Rainfall', 
+      unit: 'mm', 
+      icon: 'rainy-outline', 
+      placeholder: 'e.g., 203.5',
+      keyboardType: 'decimal-pad',
+      decimal: true
+    }
   ];
 
   const handleInputChange = (key: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+    // Allow only numbers and one decimal point
+    const decimalRegex = /^\d*\.?\d*$/;
+    if (value === '' || decimalRegex.test(value)) {
+      setFormData(prev => ({ ...prev, [key]: value }));
+    }
   };
 
   const validateForm = (): boolean => {
     for (const field of inputFields) {
-      if (!formData[field.key as keyof FormData] || formData[field.key as keyof FormData].trim() === '') {
+      const value = formData[field.key as keyof FormData];
+      
+      // Check if field is empty
+      if (!value || value.trim() === '') {
         Alert.alert('Validation Error', `Please enter ${field.label}`);
         return false;
       }
       
-      const numValue = parseFloat(formData[field.key as keyof FormData]);
+      // Check if value is a valid number
+      const numValue = parseFloat(value);
       if (isNaN(numValue) || numValue < 0) {
         Alert.alert('Validation Error', `Please enter a valid positive number for ${field.label}`);
+        return false;
+      }
+      
+      // For pH, check if it's between 0 and 14
+      if (field.key === 'ph' && (numValue < 0 || numValue > 14)) {
+        Alert.alert('Validation Error', 'pH value must be between 0 and 14');
         return false;
       }
     }
@@ -220,21 +290,6 @@ export default function HomeScreen() {
             {inputFields.map((field) => (
               <View key={field.key} style={styles.inputGroup}>
                 <View style={styles.inputLabelContainer}>
-                  <Ionicons name={field.icon as any} size={20} color="#4CAF50" />
-                  <Text style={styles.inputLabel}>{field.label}</Text>
-                  {field.unit && <Text style={styles.inputUnit}>({field.unit})</Text>}
-                </View>
-                <TextInput
-                  style={styles.input}
-                  value={formData[field.key as keyof FormData]}
-                  onChangeText={(value) => handleInputChange(field.key as keyof FormData, value)}
-                  placeholder={field.placeholder}
-                  keyboardType="numeric"
-                  placeholderTextColor="#999"
-                />
-              </View>
-            ))}
-
             <TouchableOpacity 
               style={[styles.submitButton, loading && styles.submitButtonDisabled]} 
               onPress={handleSubmit}

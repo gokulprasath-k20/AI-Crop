@@ -82,22 +82,62 @@ class CropRecommendationSystem:
         params = {'N': N, 'P': P, 'K': K, 'temperature': temperature, 
                  'humidity': humidity, 'ph': ph, 'rainfall': rainfall}
         
-        for param, (min_val, max_val) in rules.items():
-            param_value = params[param]
-            
-            if min_val <= param_value <= max_val:
+        # Special handling for pomegranate
+        if crop.lower() == 'pomegranate':
+            # Temperature is very important for pomegranate
+            if 18 <= temperature <= 30:  # Ideal range
+                score += 1.5  # Bonus for being in ideal range
+            elif 15 <= temperature <= 35:  # Tolerable range
                 score += 1.0
             else:
-                # Calculate penalty based on distance from optimal range
-                if param_value < min_val:
-                    distance = min_val - param_value
-                    penalty = min(1.0, distance / min_val)
-                else:
-                    distance = param_value - max_val
-                    penalty = min(1.0, distance / max_val)
+                # Harsher penalty for being outside tolerable range
+                score += max(0.0, 1.0 - abs(temperature - 25) / 25)
+            
+            # Humidity is also important
+            if 40 <= humidity <= 70:  # Ideal range
+                score += 1.5
+            elif 30 <= humidity <= 80:  # Tolerable range
+                score += 1.0
+            else:
+                score += max(0.0, 1.0 - abs(humidity - 55) / 55)
+            
+            # Other parameters with standard scoring
+            for param in ['N', 'P', 'K', 'ph', 'rainfall']:
+                min_val, max_val = rules[param]
+                param_value = params[param]
                 
-                score += max(0.0, 1.0 - penalty)
+                if min_val <= param_value <= max_val:
+                    score += 1.0
+                else:
+                    range_width = max(1, max_val - min_val)
+                    if param_value < min_val:
+                        distance = min_val - param_value
+                    else:
+                        distance = param_value - max_val
+                    
+                    normalized_penalty = min(1.0, distance / range_width)
+                    score += max(0.0, 1.0 - normalized_penalty)
+        else:
+            # Standard scoring for other crops
+            for param, (min_val, max_val) in rules.items():
+                param_value = params[param]
+                
+                if min_val <= param_value <= max_val:
+                    score += 1.0
+                else:
+                    range_width = max(1, max_val - min_val)
+                    if param_value < min_val:
+                        distance = min_val - param_value
+                    else:
+                        distance = param_value - max_val
+                    
+                    normalized_penalty = min(1.0, distance / range_width)
+                    score += max(0.0, 1.0 - normalized_penalty)
         
+        # Normalize the score
+        if crop.lower() == 'pomegranate':
+            # For pomegranate, we added some bonus points, so we need to normalize accordingly
+            return min(1.0, score / (total_params + 1.0))  # +1 for the bonus points
         return score / total_params
     
     def predict_yield(self, crop: str, N: float, P: float, K: float, 
@@ -116,16 +156,34 @@ class CropRecommendationSystem:
         # Calculate environmental factors
         nutrient_factor = min(2.0, (N + P + K) / 150)  # Normalized nutrient availability
         
-        # Temperature factor
-        if 20 <= temperature <= 30:
-            temp_factor = 1.0
-        elif temperature < 20:
-            temp_factor = 0.7 + (temperature / 30)
+        # Temperature factor - crop specific
+        if crop_lower == 'pomegranate':
+            if 15 <= temperature <= 30:  # Ideal for pomegranate
+                temp_factor = 1.0
+            elif 10 <= temperature < 15 or 30 < temperature <= 35:  # Tolerable
+                temp_factor = 0.8
+            else:  # Outside tolerable range
+                temp_factor = 0.5
         else:
-            temp_factor = max(0.5, 1.2 - (temperature / 50))
+            # Default temperature factor for other crops
+            if 20 <= temperature <= 30:
+                temp_factor = 1.0
+            elif temperature < 20:
+                temp_factor = 0.7 + (temperature / 30)
+            else:
+                temp_factor = max(0.5, 1.2 - (temperature / 50))
         
-        # Humidity factor
-        humidity_factor = min(1.0, humidity / 80)
+        # Humidity factor - crop specific
+        if crop_lower == 'pomegranate':
+            if 35 <= humidity <= 70:  # Ideal for pomegranate
+                humidity_factor = 1.0
+            elif 30 <= humidity < 35 or 70 < humidity <= 80:  # Tolerable
+                humidity_factor = 0.8
+            else:  # Outside tolerable range
+                humidity_factor = 0.6
+        else:
+            # Default humidity factor for other crops
+            humidity_factor = min(1.0, humidity / 80)
         
         # pH factor
         if 6.0 <= ph <= 7.5:
@@ -177,9 +235,17 @@ class CropRecommendationSystem:
         # pH adaptability score
         ph_score = max(1, min(10, 10 - abs(ph - 7.0) * 1.5))
         
-        # Climate resilience score
+        # Climate resilience score - crop specific
         climate_score = 5.0
-        if 20 <= temperature <= 30 and 60 <= humidity <= 80:
+        
+        # Special handling for pomegranate
+        if crop_lower == 'pomegranate':
+            if 15 <= temperature <= 30 and 35 <= humidity <= 70:  # Pomegranate's preferred range
+                climate_score = 9.0
+            elif 10 <= temperature <= 35 and 30 <= humidity <= 80:  # Tolerable range
+                climate_score = 7.0
+        # General climate scoring for other crops
+        elif 20 <= temperature <= 30 and 60 <= humidity <= 80:
             climate_score = 8.0
         elif 15 <= temperature <= 35 and 40 <= humidity <= 90:
             climate_score = 6.5
@@ -326,6 +392,10 @@ def test_system():
     print(f"🎯 Model accuracy: {crop_system.model_accuracy*100:.1f}%")
     
     test_cases = [
+        {
+            'name': 'Pomegranate Ideal Conditions',
+            'params': {'N': 100, 'P': 50, 'K': 50, 'temperature': 25, 'humidity': 50, 'ph': 7.0, 'rainfall': 600}
+        },
         {
             'name': 'Standard Test Case (Your Example)',
             'params': {'N': 90, 'P': 42, 'K': 43, 'temperature': 21, 'humidity': 82, 'ph': 6.5, 'rainfall': 203}
